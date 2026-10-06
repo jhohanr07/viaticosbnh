@@ -1,0 +1,7 @@
+{
+  "name": "viaticos-bnh",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Solicitud de Viáticos BNH Medical (frontend en Vercel + backend en Google Apps Script)",
+  "engines": { "node": ">=18" }
+}

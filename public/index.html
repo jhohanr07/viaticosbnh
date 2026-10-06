@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitud de Viáticos</title>
+  <style>
+    :root{
+      --bg: #f4f7f8;
+      --card: #ffffff;
+      --primary: #006589;
+      --primary-dark: #004a63;
+      --accent: #1ab895;
+      --text: #1c2b36;
+      --muted: #757575;
+      --border: #e3e8ea;
+      --success: #1ab895;
+      --danger: #d93025;
+      --radius: 12px;
+    }
+    *{ box-sizing: border-box; }
+    body{
+      margin:0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      padding: 24px 16px 60px;
+    }
+    .wrap{ max-width: 760px; margin: 0 auto; }
+    header{ text-align:center; margin-bottom: 24px; }
+    header img.logo{ height: 64px; margin-bottom: 10px; }
+    header h1{ font-size: 19px; margin: 0 0 4px; color: var(--primary); font-weight: 700; }
+    header p{ color: var(--muted); margin:0; font-size: 13px; }
+    header .accent-bar{ width:48px; height:3px; background: var(--accent); margin: 10px auto 0; border-radius:2px; }
+
+    .card{
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.08);
+      padding: 20px; margin-bottom: 16px;
+    }
+    .card h2{ font-size: 14px; margin: 0 0 14px; color: var(--primary); text-transform: uppercase; letter-spacing: .03em; }
+
+    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 560px){ .grid{ grid-template-columns: 1fr; } }
+
+    .field.full{ grid-column: 1 / -1; }
+
+    .field label{ display:block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: #374151; }
+    .field select, .field input, .field textarea{
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; background: #fff; color: var(--text); font-family: inherit;
+    }
+    .field select:focus, .field input:focus, .field textarea:focus{ outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,101,137,.14); }
+    .hidden{ display:none !important; }
+    .error-msg{ color: var(--danger); font-size: 12px; margin-top: 4px; display:none; }
+
+    /* Select múltiple de Centro de Costo / Regiones */
+    .field select[multiple]{
+      height: auto; min-height: 108px; padding: 6px;
+    }
+    .field select[multiple] option{
+      padding: 6px 8px; border-radius: 4px;
+    }
+    .field select[multiple] option:checked{
+      background: var(--primary); color: #fff;
+    }
+    .hint{ font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* BOTONES "LIQUID GLASS" */
+    .transporte-toggle{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom: 4px; }
+    .transporte-toggle button{
+      position:relative; isolation:isolate; overflow:hidden;
+      flex:1; min-width: 140px; padding: 11px 10px; border-radius: 14px; border: 1px solid var(--border);
+      background: rgba(255,255,255,.7); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      cursor:pointer; font-size: 13px; font-weight: 600; color: #374151;
+      transition: color .35s cubic-bezier(0.16,1,0.3,1), border-color .35s cubic-bezier(0.16,1,0.3,1),
+                  box-shadow .35s cubic-bezier(0.16,1,0.3,1), transform .18s cubic-bezier(0.2,0,0,1);
+    }
+    .transporte-toggle button .btn-label{
+      position:relative; z-index: 3; display:flex; align-items:center; justify-content:center; gap:6px;
+      transition: transform .3s cubic-bezier(0.16,1,0.3,1);
+    }
+    .transporte-toggle button::before{
+      content:''; position:absolute; z-index:1; inset:0; border-radius: inherit;
+      background: linear-gradient(155deg, var(--liquid-a, var(--primary)), var(--liquid-b, var(--primary-dark)));
+      transform: translateY(102%);
+      transition: transform .5s cubic-bezier(0.16,1,0.3,1);
+    }
+    .transporte-toggle button::after{
+      content:''; position:absolute; z-index:2; inset:0; border-radius: inherit; pointer-events:none;
+      background: linear-gradient(125deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 45%),
+                  radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,.35), rgba(255,255,255,0) 70%);
+      opacity: 0; transition: opacity .4s cubic-bezier(0.16,1,0.3,1);
+    }
+    .transporte-toggle button:active .btn-label{ transform: scale(0.96); }
+    .transporte-toggle button.active{
+      color:#fff; border-color: transparent;
+      box-shadow: 0 10px 22px -8px var(--liquid-shadow, rgba(0,0,0,.25)), inset 0 1px 0 rgba(255,255,255,.4);
+    }
+    .transporte-toggle button.active::before{
+      transform: translateY(0%);
+      animation: liquidMorph .7s cubic-bezier(0.16,1,0.3,1);
+    }
+    .transporte-toggle button.active::after{ opacity: 1; }
+    @keyframes liquidMorph{
+      0%{ border-radius: 14px; }
+      32%{ border-radius: 46% 54% 61% 39% / 54% 44% 56% 46%; }
+      66%{ border-radius: 55% 45% 40% 60% / 44% 56% 48% 52%; }
+      100%{ border-radius: 14px; }
+    }
+    #btn-vehiculo{ --liquid-a:#22d3ee; --liquid-b:#0369a1; --liquid-shadow: rgba(3,105,161,.35); }
+    #btn-vehiculo-empresa{ --liquid-a:#818cf8; --liquid-b:#4338ca; --liquid-shadow: rgba(67,56,202,.35); }
+    #btn-privado{ --liquid-a:#fbbf24; --liquid-b:#d97706; --liquid-shadow: rgba(217,119,6,.35); }
+    #btn-aereo{ --liquid-a:#38bdf8; --liquid-b:#0284c7; --liquid-shadow: rgba(2,132,199,.35); }
+    #btn-acompanante{ --liquid-a:#f472b6; --liquid-b:#be185d; --liquid-shadow: rgba(190,24,93,.35); }
+    @media (prefers-reduced-motion: reduce){
+      .transporte-toggle button::before{ transition: none; }
+      .transporte-toggle button.active::before{ animation: none; }
+    }
+
+    .aviso-vehiculo{
+      margin-top: 10px; background: #fff8ec; border: 1px solid #f0d999; color: #8a6d00;
+      padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.4;
+    }
+    .aviso-vehiculo b{ display:block; margin-bottom: 2px; color:#6b5400; }
+    .aviso-vehiculo.aviso-danger{
+      background: #fdecea; border-color: #f5c2c0; color: #a12923;
+    }
+    .aviso-vehiculo.aviso-danger b{ color:#8c1f1a; }
+
+    /* Escenario de animación del medio de transporte */
+    .transporte-stage{
+      max-height: 0; overflow: hidden; border-radius: 10px; margin-top: 0;
+      transition: max-height .38s cubic-bezier(0.16,1,0.3,1), margin-top .38s cubic-bezier(0.16,1,0.3,1);
+    }
+    .transporte-stage.visible{ max-height: 84px; margin-top: 12px; }
+
+    .stage-escena{
+      position: relative; height: 84px; border-radius: 10px; overflow: hidden;
+      display: none;
+    }
+    .stage-escena.activa{ display:block; }
+
+    .stage-cielo{
+      background: linear-gradient(180deg, #d9f0fb 0%, #eef7fb 100%);
+    }
+    .stage-cielo .nube{
+      position:absolute; opacity:.8;
+      font-size: 20px; filter: saturate(0) brightness(1.15);
+      animation: derivaNube linear infinite;
+    }
+    .stage-cielo .nube.n1{ top:14px; left:10%; animation-duration: 9s; }
+    .stage-cielo .nube.n2{ top:38px; left:55%; font-size:15px; animation-duration: 13s; animation-delay: -4s; }
+    @keyframes derivaNube{
+      from{ transform: translateX(0); }
+      to{ transform: translateX(-140px); }
+    }
+
+    .avion-icon{
+      position:absolute; bottom: 30px; left: -10%;
+      opacity: 0; transform: translate(0,0) rotate(0deg);
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,.15));
+    }
+    .avion-icon.jugar{
+      animation: despegueAvion 1.7s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .avion-icon.volando{
+      opacity: 1; left: 68%; bottom: 46px; transform: rotate(-16deg);
+      animation: flotarAvion 2.6s ease-in-out infinite;
+    }
+    @keyframes despegueAvion{
+      0%{ opacity: 0; left: -10%; bottom: 30px; transform: rotate(0deg); }
+      12%{ opacity: 1; }
+      70%{ left: 68%; bottom: 46px; transform: rotate(-16deg); }
+      100%{ left: 68%; bottom: 46px; transform: rotate(-16deg); }
+    }
+    @keyframes flotarAvion{
+      0%, 100%{ transform: translateY(0) rotate(-16deg); }
+      50%{ transform: translateY(-5px) rotate(-14deg); }
+    }
+
+    .stage-carretera{ background: linear-gradient(180deg, #eef2f3 0%, #e3e8ea 100%); }
+    .stage-carretera .asfalto{
+      position:absolute; left:0; right:0; bottom:0; height: 30px; background: #37424a;
+    }
+    .stage-carretera .linea-carretera{
+      position:absolute; left:0; right:-40px; bottom: 13px; height: 3px; z-index: 1;
+      background-image: linear-gradient(90deg, #fff 0 16px, transparent 16px 32px);
+      background-size: 32px 3px; background-repeat: repeat-x;
+      animation: avanzarLinea .5s linear infinite;
+    }
+    @keyframes avanzarLinea{ to{ background-position-x: -32px; } }
+
+    .carro-icon{
+      position:absolute; bottom: 22px; left: -25%; z-index: 2;
+      opacity: 0;
+    }
+    .carro-icon.jugar{
+      animation: entradaCarro .55s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .carro-icon.manejando{
+      opacity: 1; left: 38%;
+      animation: suspensionCarro .5s ease-in-out infinite;
+    }
+    @keyframes entradaCarro{
+      0%{ opacity: 0; left: -25%; }
+      100%{ opacity: 1; left: 38%; }
+    }
+    @keyframes suspensionCarro{
+      0%, 100%{ transform: translateY(0); }
+      50%{ transform: translateY(-2px); }
+    }
+    .carro-icon .rueda{
+      transform-origin: center;
+      transform-box: fill-box;
+      animation: girarRueda .45s linear infinite;
+    }
+    @keyframes girarRueda{ to{ transform: rotate(360deg); } }
+
+    /* TRANSPORTE PRIVADO: el taxi llega desde la derecha y se estaciona */
+    .taxi-icon{
+      position:absolute; bottom: 20px; left: 120%; z-index: 2;
+      opacity: 0;
+    }
+    .taxi-icon.jugar{
+      animation: llegadaTaxi .85s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .taxi-icon.esperando{
+      opacity: 1; left: 36%;
+      animation: suspensionCarro .5s ease-in-out infinite;
+    }
+    @keyframes llegadaTaxi{
+      0%{ opacity: 0; left: 120%; }
+      18%{ opacity: 1; }
+      100%{ opacity: 1; left: 36%; }
+    }
+    .taxi-icon .rueda{ transform-origin: center; transform-box: fill-box; animation: girarRueda .45s linear infinite; }
+    .taxi-icon .luz-techo{ animation: parpadeoLuz 1s steps(2, end) infinite; }
+    @keyframes parpadeoLuz{ 50%{ opacity:.2; } }
+
+    /* ACOMPAÑANTE: llega, abre la puerta, sube el acompañante y cierra */
+    .recogida-icon{
+      position:absolute; bottom: 20px; left: -25%; z-index: 2;
+      opacity: 0;
+    }
+    .recogida-icon.jugar{
+      animation: entradaCarro .55s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .recogida-icon.estacionado{
+      opacity: 1; left: 30%;
+      animation: suspensionCarro .5s ease-in-out infinite;
+    }
+    .recogida-icon .rueda{ transform-origin: center; transform-box: fill-box; animation: girarRueda .45s linear infinite; }
+    #puerta-recogida{ transform-box: fill-box; transform-origin: bottom right; }
+    #puerta-recogida.abrir{ animation: abrirPuerta .38s cubic-bezier(0.16,1,0.3,1) forwards; }
+    #puerta-recogida.cerrar{ animation: cerrarPuerta .32s cubic-bezier(0.16,1,0.3,1) forwards; }
+    @keyframes abrirPuerta{ 0%{ transform: rotate(0deg); } 100%{ transform: rotate(-58deg); } }
+    @keyframes cerrarPuerta{ 0%{ transform: rotate(-58deg); } 100%{ transform: rotate(0deg); } }
+    #pasajero-recogida{ opacity: 0; }
+    #pasajero-recogida.abordar{ animation: abordarPasajero .6s cubic-bezier(0.16,1,0.3,1) forwards; }
+    @keyframes abordarPasajero{
+      0%{ transform: translate(96px, 22px) scale(1); opacity: 1; }
+      70%{ transform: translate(74px, 20px) scale(.82); opacity: 1; }
+      100%{ transform: translate(69px, 19px) scale(.45); opacity: 0; }
+    }
+
+    /* "Ruta del Viaje" estilo app de transporte */
+    #mapa-ruta{
+      width:100%; height:220px; border-radius: var(--radius); overflow:hidden;
+      background: #e3e8ea; margin-bottom: 16px;
+    }
+    .paradas-list{ display:flex; flex-direction:column; }
+    .parada-row{ display:flex; align-items:stretch; gap:10px; }
+    .parada-conector{
+      display:flex; flex-direction:column; align-items:center; width:16px; flex-shrink:0;
+    }
+    .parada-dot{
+      width:10px; height:10px; border-radius:50%; margin-top:14px; flex-shrink:0;
+      background:#fff; border:2px solid var(--muted);
+    }
+    .parada-dot.origen{ background: var(--primary); border-color: var(--primary); }
+    .parada-dot.destino{ background: var(--danger); border-color: var(--danger); width:12px; height:12px; }
+    .parada-linea{
+      flex:1; width:2px; min-height: 22px; margin: 2px 0;
+      background-image: linear-gradient(var(--border) 60%, rgba(255,255,255,0) 0%);
+      background-position: left; background-size: 2px 8px; background-repeat: repeat-y;
+    }
+    .parada-input-wrap{
+      flex:1; display:flex; align-items:center; background:#f4f7f8; border:1px solid var(--border);
+      border-radius:8px; margin-bottom:10px; padding: 2px 6px 2px 12px;
+    }
+    .parada-input-wrap input{
+      flex:1; border:none; background:transparent; padding: 10px 6px; font-size: 14px;
+      color: var(--text); font-family: inherit;
+    }
+    .parada-input-wrap input:focus{ outline:none; }
+    .parada-input-wrap:focus-within{ border-color: var(--primary); }
+    .btn-quitar-parada{
+      border:none; background:transparent; color: var(--muted); cursor:pointer;
+      font-size: 14px; padding: 6px 8px; line-height:1;
+    }
+    .btn-quitar-parada:hover{ color: var(--danger); }
+    .btn-agregar-parada{
+      align-self:flex-start; margin: 2px 0 0 26px; padding: 8px 0; border:none; background:none;
+      cursor:pointer; font-size: 13px; font-weight: 700; color: var(--primary);
+    }
+    .btn-agregar-parada::before{ content:'+ '; }
+
+    .resumen{ display:flex; justify-content: space-between; align-items:center; padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: 13.5px; gap: 12px; }
+    .resumen:last-of-type{ border-bottom:none; }
+    .resumen .label{ color: var(--muted); }
+    .resumen span:last-child{ text-align:right; }
+    .resumen.total{ font-size: 16px; font-weight: 700; color: var(--primary); padding-top: 14px; }
+
+    .badge-tasa{ display:inline-block; background:#e6f7f2; color:#0f8c6c; font-size: 11px; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+
+    .fiscal-box{ background:#f9fafb; border-radius: 8px; padding: 12px 14px; margin-top: 6px; }
+    .fiscal-box .resumen{ font-size: 12.5px; padding: 6px 0; }
+    .checkbox-row{ display:flex; align-items:center; gap:8px; margin-top: 10px; font-size: 13px; }
+    .checkbox-row input{ width:auto; }
+
+    .btn-submit{
+      width:100%; padding: 14px; border:none; border-radius: 10px; background: var(--primary);
+      color:#fff; font-size: 15px; font-weight: 700; cursor:pointer; transition: background .15s;
+    }
+    .btn-submit:hover{ background: var(--primary-dark); }
+    .btn-submit:disabled{ background:#9ca3af; cursor:not-allowed; }
+
+    .toast{
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      background:#1a1d23; color:#fff; padding: 10px 18px; border-radius: 8px; font-size: 13px;
+      display:none; z-index: 3000; max-width: 92vw; text-align:center;
+    }
+    .toast.error{ background: var(--danger); }
+    .toast.success{ background: var(--success); }
+
+    .modal-overlay{
+      display:none; position: fixed; inset:0; background: rgba(0,0,0,.45);
+      align-items:center; justify-content:center; z-index: 1000; padding: 16px;
+    }
+    .modal{
+      background:#fff; border-radius: var(--radius); max-width: 420px; width:100%;
+      padding: 28px 24px; text-align:center;
+    }
+    .modal .check{ width:56px; height:56px; border-radius:50%; background:#e7f7ee; color: var(--success);
+      display:flex; align-items:center; justify-content:center; margin: 0 auto 14px; font-size: 28px; }
+    .modal .check.pendiente{ background:#fff3cd; color:#8a6d00; }
+    .modal h3{ margin: 0 0 6px; font-size: 17px; }
+    .modal p{ color: var(--muted); font-size: 13.5px; margin: 0 0 18px; }
+    .modal .actions{ display:flex; gap:10px; }
+    .modal .actions a, .modal .actions button{
+      flex:1; padding: 11px; border-radius: 8px; text-decoration:none; font-size: 13.5px; font-weight:600; cursor:pointer;
+      font-family: inherit;
+    }
+    .modal .btn-download{ background: var(--primary); color:#fff; border:none; text-align:center; }
+    .modal .btn-close{ background:#f3f4f6; color:#374151; border:1px solid var(--border); }
+
+    .spinner{
+      width:16px; height:16px; border: 2px solid rgba(255,255,255,.5); border-top-color:#fff;
+      border-radius:50%; display:inline-block; animation: spin .7s linear infinite; vertical-align:-3px; margin-right:6px;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+
+    /* El desplegable de Places Autocomplete debe quedar sobre todo */
+    .pac-container{ z-index: 2000 !important; }
+
+    @media (prefers-reduced-motion: reduce){
+      .avion-icon, .avion-icon.jugar, .avion-icon.volando,
+      .carro-icon, .carro-icon.jugar, .carro-icon.manejando, .carro-icon .rueda,
+      .taxi-icon, .taxi-icon.jugar, .taxi-icon.esperando, .taxi-icon .rueda, .taxi-icon .luz-techo,
+      .recogida-icon, .recogida-icon.jugar, .recogida-icon.estacionado, .recogida-icon .rueda,
+      #puerta-recogida.abrir, #puerta-recogida.cerrar, #pasajero-recogida.abordar,
+      .stage-cielo .nube, .stage-carretera .linea-carretera{
+        animation: none !important;
+      }
+      .avion-icon.volando{ opacity:1; left:50%; bottom:40px; }
+      .carro-icon.manejando{ opacity:1; left:38%; }
+      .taxi-icon.esperando{ opacity:1; left:36%; }
+      .recogida-icon.estacionado{ opacity:1; left:30%; }
+      #pasajero-recogida.abordar{ opacity:0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img class="logo" src="https://bnhmedical.com/wp-content/uploads/2024/02/BNH.png" alt="BNH Medical - Equipos & Suministros">
+      <h1>Solicitud de Viáticos</h1>
+      <p>Complete el formulario para calcular y generar su solicitud</p>
+      <div class="accent-bar"></div>
+    </header>
+
+    <form id="form-viaticos">
+      <div class="card">
+        <h2>Datos del Solicitante</h2>
+        <div class="grid">
+          <div class="field">
+            <label for="vendedor">Vendedor / Solicitante</label>
+            <select id="vendedor" required></select>
+          </div>
+          <div class="field">
+            <label for="departamento">Departamento</label>
+            <select id="departamento" required></select>
+          </div>
+          <div class="field">
+            <label for="centroCosto">Centro de Costo</label>
+            <select id="centroCosto" required multiple></select>
+            <div class="hint">Mantenga presionado Ctrl (Windows) o Cmd (Mac) para seleccionar varios centros de costo.</div>
+          </div>
+          <div class="field">
+            <label for="fechaSolicitud">Fecha de Solicitud</label>
+            <input type="date" id="fechaSolicitud" disabled>
+          </div>
+          <div class="field full">
+            <label for="motivoVisita">Motivo de la Visita (Cliente / Médico a visitar)</label>
+            <textarea id="motivoVisita" rows="2" required placeholder="Ej: Visita al Dr. Pérez, Hospital Universitario, para cierre de venta de equipo de Rayos X."></textarea>
+            <div class="hint">Sea específico: esta descripción es evaluada automáticamente para agilizar la aprobación.</div>
+          </div>
+          <div class="field">
+            <label for="fechaSalida">Fecha de Partida (Salida)</label>
+            <input type="date" id="fechaSalida" required>
+          </div>
+          <div class="field">
+            <label for="fechaLlegada">Fecha de Llegada (Retorno)</label>
+            <input type="date" id="fechaLlegada" required>
+            <div class="error-msg" id="error-fechas">La fecha de llegada no puede ser anterior a la de salida.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Ruta del Viaje</h2>
+        <div class="field full" style="margin-bottom:14px;">
+          <label for="regionesViaje">Regiones que abarca el viaje</label>
+          <select id="regionesViaje" multiple required></select>
+          <div class="hint">Seleccione todas las regiones por las que pasará el viaje (ej. Caracas → Maracaibo: Región Central + Región Occidente). Las direcciones de la ruta solo se aceptan si pertenecen a alguna región seleccionada. Mantenga Ctrl (Windows) o Cmd (Mac) para elegir varias.</div>
+        </div>
+        <div id="mapa-ruta"></div>
+        <div id="paradas-container" class="paradas-list"></div>
+        <button type="button" class="btn-agregar-parada" id="btn-agregar-parada">Agregar parada</button>
+        <div class="hint" id="hint-autocompletado" style="margin-top:10px;">
+          Empiece a escribir y seleccione la dirección de la lista de sugerencias para que el cálculo de distancia y el mapa sean exactos.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Transporte</h2>
+        <div class="transporte-toggle">
+          <button type="button" data-valor="Vehículo Propio" id="btn-vehiculo"><span class="btn-label">🚗 Vehículo Propio</span></button>
+          <button type="button" data-valor="Vehículo de la Empresa" id="btn-vehiculo-empresa"><span class="btn-label">🚙 Vehículo de la Empresa</span></button>
+          <button type="button" data-valor="Transporte Privado" id="btn-privado"><span class="btn-label">🚕 Transporte Privado</span></button>
+          <button type="button" data-valor="Transporte Aéreo" id="btn-aereo"><span class="btn-label">✈️ Transporte Aéreo</span></button>
+          <button type="button" data-valor="Acompañante" id="btn-acompanante"><span class="btn-label">🧑‍🤝‍🧑 Acompañante</span></button>
+        </div>
+
+        <div class="transporte-stage" id="transporte-stage" aria-hidden="true">
+          <div class="stage-escena stage-cielo" id="stage-cielo">
+            <span class="nube n1">☁️</span>
+            <span class="nube n2">☁️</span>
+            <svg class="avion-icon" id="avion-icon" viewBox="0 0 64 64" width="42" height="42">
+              <path d="M4 36 L56 14 C58 13 60 15 58 17 L40 32 L44 50 L36 48 L30 36 L14 42 L10 38 Z" fill="var(--primary)"/>
+            </svg>
+          </div>
+          <div class="stage-escena stage-carretera" id="stage-carretera">
+            <div class="linea-carretera"></div>
+            <div class="asfalto"></div>
+            <svg class="carro-icon" id="carro-icon" viewBox="0 0 100 52" width="74" height="38">
+              <rect x="8" y="20" width="72" height="15" rx="6" fill="var(--primary)"/>
+              <path d="M22 20 L31 8 H61 L70 20 Z" fill="var(--primary)"/>
+              <rect x="33" y="11" width="26" height="9" rx="2" fill="#d9f0fb"/>
+              <circle class="rueda" cx="27" cy="37" r="8" fill="#1c2b36"/>
+              <circle class="rueda" cx="66" cy="37" r="8" fill="#1c2b36"/>
+              <circle cx="27" cy="37" r="3" fill="#fff"/>
+              <circle cx="66" cy="37" r="3" fill="#fff"/>
+            </svg>
+          </div>
+          <div class="stage-escena stage-carretera" id="stage-taxi">
+            <div class="linea-carretera"></div>
+            <div class="asfalto"></div>
+            <svg class="taxi-icon" id="taxi-icon" viewBox="0 0 100 52" width="74" height="38">
+              <rect x="8" y="20" width="72" height="15" rx="6" fill="#f2b705"/>
+              <path d="M22 20 L31 8 H61 L70 20 Z" fill="#f2b705"/>
+              <rect x="33" y="11" width="26" height="9" rx="2" fill="#d9f0fb"/>
+              <rect x="40" y="2" width="12" height="6" rx="2" class="luz-techo" fill="#1c2b36"/>
+              <rect x="8" y="26" width="72" height="4" fill="#1c2b36" opacity=".2"/>
+              <circle class="rueda" cx="27" cy="37" r="8" fill="#1c2b36"/>
+              <circle class="rueda" cx="66" cy="37" r="8" fill="#1c2b36"/>
+              <circle cx="27" cy="37" r="3" fill="#fff"/>
+              <circle cx="66" cy="37" r="3" fill="#fff"/>
+            </svg>
+          </div>
+          <div class="stage-escena stage-carretera" id="stage-recogida">
+            <div class="linea-carretera"></div>
+            <div class="asfalto"></div>
+            <svg class="recogida-icon" id="recogida-icon" viewBox="0 0 110 52" width="82" height="38">
+              <rect x="8" y="20" width="72" height="15" rx="6" fill="var(--accent)"/>
+              <path d="M22 20 L31 8 H61 L70 20 Z" fill="var(--accent)"/>
+              <rect x="33" y="11" width="26" height="9" rx="2" fill="#d9f0fb"/>
+              <circle class="rueda" cx="27" cy="37" r="8" fill="#1c2b36"/>
+              <circle class="rueda" cx="66" cy="37" r="8" fill="#1c2b36"/>
+              <circle cx="27" cy="37" r="3" fill="#fff"/>
+              <circle cx="66" cy="37" r="3" fill="#fff"/>
+              <rect id="puerta-recogida" x="70" y="11" width="10" height="24" rx="2" fill="#0f8c6c"/>
+              <g id="pasajero-recogida">
+                <circle cx="0" cy="0" r="5" fill="#374151"/>
+                <rect x="-4" y="4" width="8" height="13" rx="4" fill="#374151"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <div class="field hidden" id="campo-vehiculo-empresa" style="margin-top:12px;">
+          <label for="vehiculoEmpresa">Seleccione el vehículo de la empresa</label>
+          <select id="vehiculoEmpresa">
+            <option value="">Seleccione...</option>
+          </select>
+          <div class="aviso-vehiculo hidden" id="aviso-condicion-vehiculo"></div>
+          <div class="aviso-vehiculo aviso-danger hidden" id="aviso-disponibilidad-vehiculo"></div>
+          <div class="hint hidden" id="hint-verificando-disponibilidad">Verificando disponibilidad del vehículo…</div>
+        </div>
+
+        <div class="field hidden" id="campo-km" style="margin-top:12px;">
+          <label for="km">Distancia total (Km) — calculada automáticamente</label>
+          <input type="text" id="km" readonly placeholder="Se calcula según los tramos indicados">
+        </div>
+
+        <div class="field hidden" id="campo-genero-acompanante" style="margin-top:12px;">
+          <label for="generoAcompanante">Género del acompañante</label>
+          <select id="generoAcompanante">
+            <option value="">Seleccione...</option>
+            <option value="Hombre">Hombre</option>
+            <option value="Mujer">Mujer</option>
+          </select>
+          <div class="hint">El acompañante <b>hombre</b> comparte habitación con el titular: se abona un monto fijo por noche. La acompañante <b>mujer</b> requiere habitación propia: se calcula el hospedaje completo del destino. La alimentación se calcula completa en ambos casos.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Resumen de Cálculo (en vivo)</h2>
+        <div id="resumen-vacio" style="color:var(--muted); font-size:13px;">Complete los datos para ver el cálculo.</div>
+        <div id="resumen-contenido" style="display:none;">
+          <div class="resumen"><span class="label">Días / Noches</span><span id="r-dias">-</span></div>
+          <div class="resumen"><span class="label">Ruta</span><span id="r-ruta">-</span></div>
+          <div class="resumen"><span class="label">Alimentación (Desayuno+Almuerzo+Cena)</span><span id="r-alimentacion">-</span></div>
+          <div class="resumen"><span class="label">Hospedaje</span><span id="r-hospedaje">-</span></div>
+          <div class="resumen"><span class="label">Transporte</span><span id="r-transporte">-</span></div>
+          <div class="resumen" id="fila-traslado-interno" style="display:none;"><span class="label">Traslado Interno (Aeropuerto/Ciudad)</span><span id="r-traslado-interno">-</span></div>
+          <div class="resumen total"><span class="label">Total USD</span><span id="r-total-usd">-</span></div>
+          <div class="resumen total">
+            <span class="label">Monto a Pagar (Bs) <span class="badge-tasa" id="r-tasa-badge">-</span></span>
+            <span id="r-total-bs">-</span>
+          </div>
+
+          <div class="fiscal-box">
+            <div class="resumen"><span class="label">Base Imponible</span><span id="r-base">-</span></div>
+            <div class="resumen"><span class="label">+ IVA (16%)</span><span id="r-iva">-</span></div>
+            <div class="resumen" id="fila-ret-iva" style="display:none;"><span class="label" id="r-ret-iva-label">&minus; Retención IVA</span><span id="r-ret-iva">-</span></div>
+            <div class="resumen"><span class="label">&minus; Retención ISLR (1%)</span><span id="r-islr">-</span></div>
+            <div class="resumen"><span class="label"><b>Neto a Pagar</b></span><span id="r-neto">-</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Envío</h2>
+        <div class="checkbox-row">
+          <input type="checkbox" id="enviarCorreo">
+          <label for="enviarCorreo" style="margin:0; font-weight:400;">Enviar copia del PDF por correo (solo aplica si la solicitud es auto-aprobada)</label>
+        </div>
+        <div class="field hidden" id="campo-correo" style="margin-top:10px;">
+          <label for="correoDestino">Correo de destino</label>
+          <input type="email" id="correoDestino" placeholder="correo@empresa.com">
+        </div>
+        <div style="margin-top:16px;">
+          <button type="submit" class="btn-submit" id="btn-enviar">Generar Solicitud</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="check" id="modal-check">✓</div>
+      <h3 id="modal-titulo">Solicitud Generada</h3>
+      <p id="modal-texto">Su solicitud fue registrada exitosamente.</p>
+      <div class="actions">
+        <a class="btn-download" id="btn-descargar-pdf" download>Descargar PDF</a>
+        <button type="button" class="btn-close" id="btn-cerrar-modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------------------------------------------------
+    // CLIENTE DE LA API (reemplaza a google.script.run).
+    // Llama a /api/gas (función serverless de Vercel), que reenvía la petición
+    // al backend en Google Apps Script.
+    // -----------------------------------------------------------------------
+    function gas(metodo, ...args) {
+      return fetch('/api/gas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metodo, args })
+      })
+        .then(r => r.json())
+        .then(j => {
+          if (!j.ok) throw new Error(j.error || 'Error del servidor');
+          return j.data;
+        });
+    }
+
+    let VENDEDORES = [];
+    let REGIONES_DISPONIBLES = [];
+    let ESTADO_REGION_MAP = {};
+    let VEHICULOS_EMPRESA = [];
+    let FECHA_HOY = '';
+    let debounceTimer = null;
+    let calculoSeq = 0;          // evita que una respuesta lenta pise a una más reciente
+    let toastTimer = null;
+
+    let vehiculoDisponible = true;
+    let debounceDisponibilidad = null;
+    let disponibilidadSeq = 0;
+
+    let mapsListo = false;
+
+    // Cada parada: { value, lat, lng, estado }. La primera es el origen,
+    // la última el destino y las intermedias son escalas.
+    let PARADAS = [
+      { value: '', lat: null, lng: null, estado: '' },
+      { value: '', lat: null, lng: null, estado: '' }
+    ];
+
+    let mapaRuta = null;
+    let directionsService = null;
+    let directionsRenderer = null;
+    let marcadoresParadas = [];
+
+    const REDUCIR_MOVIMIENTO = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function esc(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      gas('getDatosIniciales')
+        .then(cargarDatosIniciales)
+        .catch(err => mostrarToast('No se pudieron cargar los datos: ' + (err.message || err), 'error'));
+      renderParadas();
+
+      document.getElementById('btn-vehiculo').addEventListener('click', () => seleccionarTransporte('Vehículo Propio'));
+      document.getElementById('btn-vehiculo-empresa').addEventListener('click', () => seleccionarTransporte('Vehículo de la Empresa'));
+      document.getElementById('btn-privado').addEventListener('click', () => seleccionarTransporte('Transporte Privado'));
+      document.getElementById('btn-aereo').addEventListener('click', () => seleccionarTransporte('Transporte Aéreo'));
+      document.getElementById('btn-acompanante').addEventListener('click', () => seleccionarTransporte('Acompañante'));
+      document.getElementById('regionesViaje').addEventListener('change', onCambioRegionesViaje);
+      document.getElementById('generoAcompanante').addEventListener('change', onCambioFormulario);
+
+      document.getElementById('vehiculoEmpresa').addEventListener('change', () => {
+        mostrarCondicionVehiculo();
+        onCambioFormulario();
+      });
+
+      document.getElementById('btn-agregar-parada').addEventListener('click', () => {
+        PARADAS.splice(PARADAS.length - 1, 0, { value: '', lat: null, lng: null, estado: '' });
+        renderParadas();
+        onCambioFormulario();
+      });
+
+      ['vendedor', 'departamento', 'centroCosto', 'fechaSalida', 'fechaLlegada'].forEach(id => {
+        document.getElementById(id).addEventListener('change', onCambioFormulario);
+      });
+
+      document.getElementById('enviarCorreo').addEventListener('change', (e) => {
+        document.getElementById('campo-correo').classList.toggle('hidden', !e.target.checked);
+      });
+
+      document.getElementById('form-viaticos').addEventListener('submit', onSubmit);
+      document.getElementById('btn-cerrar-modal').addEventListener('click', () => {
+        document.getElementById('modal-overlay').style.display = 'none';
+      });
+    });
+
+    // ---------------------------------------------------------------------
+    // PARADAS
+    // ---------------------------------------------------------------------
+    function renderParadas() {
+      const cont = document.getElementById('paradas-container');
+      // Limpia desplegables huérfanos de Places de inputs que ya no existen
+      document.querySelectorAll('.pac-container').forEach(el => el.remove());
+
+      cont.innerHTML = PARADAS.map((p, i) => {
+        const esOrigen = i === 0;
+        const esDestino = i === PARADAS.length - 1;
+        const tipoDot = esOrigen ? 'origen' : (esDestino ? 'destino' : '');
+        const placeholder = esOrigen ? 'Punto de partida' : (esDestino ? 'Destino final' : `Parada ${i}`);
+        const mostrarLinea = i < PARADAS.length - 1;
+        const puedeQuitar = PARADAS.length > 2;
+
+        return `
+          <div class="parada-row">
+            <div class="parada-conector">
+              <span class="parada-dot ${tipoDot}"></span>
+              ${mostrarLinea ? '<span class="parada-linea"></span>' : ''}
+            </div>
+            <div class="parada-input-wrap">
+              <input type="text" class="parada-input" data-idx="${i}" value="${esc(p.value)}" placeholder="${placeholder}" autocomplete="off">
+              ${puedeQuitar ? `<button type="button" class="btn-quitar-parada" data-idx="${i}" title="Quitar parada" aria-label="Quitar parada">✕</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+
+      cont.querySelectorAll('.parada-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = Number(e.target.dataset.idx);
+          PARADAS[idx].value = e.target.value;
+          PARADAS[idx].lat = null;
+          PARADAS[idx].lng = null;
+          PARADAS[idx].estado = '';
+          actualizarMapaRuta();
+          onCambioFormulario();
+        });
+        // Enter dentro del autocompletado NO debe enviar el formulario
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') e.preventDefault();
+        });
+      });
+
+      cont.querySelectorAll('.btn-quitar-parada').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = Number(e.currentTarget.dataset.idx);
+          PARADAS.splice(idx, 1);
+          renderParadas();
+          actualizarMapaRuta();
+          onCambioFormulario();
+        });
+      });
+
+      inicializarAutocompleteParadas();
+    }
+
+    function paradasATramos() {
+      const tramos = [];
+      for (let i = 0; i < PARADAS.length - 1; i++) {
+        tramos.push({
+          origen: String(PARADAS[i].value || '').trim(),
+          destino: String(PARADAS[i + 1].value || '').trim()
+        });
+      }
+      return tramos;
+    }
+
+    // Una parada es válida si tiene texto y, cuando Google Maps está activo,
+    // si fue elegida de la lista de sugerencias (tiene coordenadas).
+    function paradasValidas() {
+      return PARADAS.every(p => String(p.value || '').trim() && (!mapsListo || (p.lat != null && p.lng != null)));
+    }
+
+    function regionesSeleccionadas() {
+      return Array.from(document.getElementById('regionesViaje').selectedOptions).map(o => o.value);
+    }
+
+    function validarEstadoContraRegiones(estado) {
+      const regiones = regionesSeleccionadas();
+      if (!regiones.length) return true;
+      const regionDelEstado = ESTADO_REGION_MAP[estado];
+      if (!regionDelEstado) return true;
+      return regiones.indexOf(regionDelEstado) !== -1;
+    }
+
+    function onCambioRegionesViaje() {
+      let algunaInvalida = false;
+      PARADAS.forEach((p, idx) => {
+        if (p.estado && !validarEstadoContraRegiones(p.estado)) {
+          algunaInvalida = true;
+          PARADAS[idx].value = '';
+          PARADAS[idx].lat = null;
+          PARADAS[idx].lng = null;
+          PARADAS[idx].estado = '';
+        }
+      });
+      if (algunaInvalida) {
+        mostrarToast('Se limpiaron direcciones que no pertenecen a las regiones seleccionadas', 'error');
+        renderParadas();
+        actualizarMapaRuta();
+      }
+      onCambioFormulario();
+    }
+
+    // ---------------------------------------------------------------------
+    // GOOGLE MAPS
+    // ---------------------------------------------------------------------
+    function initGoogleMaps() {
+      mapsListo = true;
+      inicializarMapaRuta();
+      inicializarAutocompleteParadas();
+      actualizarMapaRuta();
+    }
+    window.initGoogleMaps = initGoogleMaps;
+
+    // Google llama a esta función si la API key es inválida o está restringida
+    window.gm_authFailure = function () {
+      mostrarToast('Google Maps rechazó la API key. Revise la clave y sus restricciones de dominio.', 'error');
+    };
+
+    function inicializarMapaRuta() {
+      if (mapaRuta || !window.google || !google.maps) return;
+      mapaRuta = new google.maps.Map(document.getElementById('mapa-ruta'), {
+        center: { lat: 10.4806, lng: -66.9036 },
+        zoom: 6,
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: 'greedy'
+      });
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        map: mapaRuta,
+        suppressMarkers: true,
+        preserveViewport: false,
+        polylineOptions: { strokeColor: '#006589', strokeWeight: 4 }
+      });
+    }
+
+    function inicializarAutocompleteParadas() {
+      if (!mapsListo || !window.google || !google.maps || !google.maps.places) return;
+
+      document.querySelectorAll('.parada-input').forEach(input => {
+        if (input.dataset.autocompleteInit === 'true') return;
+
+        const autocomplete = new google.maps.places.Autocomplete(input, {
+          fields: ['formatted_address', 'name', 'geometry', 'address_components'],
+          componentRestrictions: { country: 've' }
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (!place || !place.geometry || !place.geometry.location) return;
+          const idx = Number(input.dataset.idx);
+          const direccion = place.formatted_address || place.name;
+
+          const componentes = place.address_components || [];
+          const componenteEstado = componentes.find(c => (c.types || []).indexOf('administrative_area_level_1') !== -1);
+          const estado = componenteEstado ? componenteEstado.long_name : '';
+
+          if (estado && !validarEstadoContraRegiones(estado)) {
+            const regionReal = ESTADO_REGION_MAP[estado] || 'una región no configurada en la matriz';
+            input.value = '';
+            PARADAS[idx] = { value: '', lat: null, lng: null, estado: '' };
+            mostrarToast('"' + direccion + '" pertenece a ' + regionReal + ', que no está entre las regiones seleccionadas del viaje.', 'error');
+            actualizarMapaRuta();
+            onCambioFormulario();
+            return;
+          }
+
+          input.value = direccion;
+          PARADAS[idx].value = direccion;
+          PARADAS[idx].lat = place.geometry.location.lat();
+          PARADAS[idx].lng = place.geometry.location.lng();
+          PARADAS[idx].estado = estado;
+
+          actualizarMapaRuta();
+          onCambioFormulario();
+        });
+
+        input.dataset.autocompleteInit = 'true';
+      });
+    }
+
+    function limpiarMarcadoresRuta() {
+      marcadoresParadas.forEach(m => m.setMap(null));
+      marcadoresParadas = [];
+    }
+
+    function actualizarMapaRuta() {
+      if (!mapaRuta) return;
+      limpiarMarcadoresRuta();
+      if (directionsRenderer) directionsRenderer.set('directions', null);
+
+      const conCoordenadas = PARADAS
+        .map((p, idx) => ({ ...p, idx }))
+        .filter(p => p.lat != null && p.lng != null);
+
+      if (conCoordenadas.length === 0) return;
+
+      const bounds = new google.maps.LatLngBounds();
+      conCoordenadas.forEach(p => {
+        const esDestinoFinal = p.idx === PARADAS.length - 1;
+        const posicion = { lat: p.lat, lng: p.lng };
+        bounds.extend(posicion);
+
+        const icono = esDestinoFinal ? undefined : {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: p.idx === 0 ? 8 : 6,
+          fillColor: p.idx === 0 ? '#006589' : '#ffffff',
+          fillOpacity: 1,
+          strokeColor: p.idx === 0 ? '#ffffff' : '#757575',
+          strokeWeight: 2
+        };
+
+        marcadoresParadas.push(new google.maps.Marker({
+          position: posicion,
+          map: mapaRuta,
+          icon: icono,
+          zIndex: esDestinoFinal ? 999 : 500
+        }));
+      });
+
+      const todasCompletas = PARADAS.every(p => p.lat != null && p.lng != null);
+      if (todasCompletas && PARADAS.length >= 2) {
+        const origen = PARADAS[0];
+        const destino = PARADAS[PARADAS.length - 1];
+        const waypoints = PARADAS.slice(1, -1).map(p => ({
+          location: { lat: p.lat, lng: p.lng },
+          stopover: true
+        }));
+
+        directionsService.route({
+          origin: { lat: origen.lat, lng: origen.lng },
+          destination: { lat: destino.lat, lng: destino.lng },
+          waypoints: waypoints,
+          travelMode: google.maps.TravelMode.DRIVING
+        }, (resultado, estado) => {
+          // Si mientras tanto el usuario cambió la ruta, se descarta esta respuesta
+          if (!PARADAS.every(p => p.lat != null && p.lng != null)) return;
+          if (estado === 'OK') {
+            directionsRenderer.setDirections(resultado);
+          } else {
+            mapaRuta.fitBounds(bounds);
+          }
+        });
+      } else {
+        mapaRuta.fitBounds(bounds);
+        if (conCoordenadas.length === 1) mapaRuta.setZoom(13);
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // DATOS INICIALES
+    // ---------------------------------------------------------------------
+    function cargarDatosIniciales(data) {
+      VENDEDORES = data.vendedores || [];
+      VEHICULOS_EMPRESA = data.vehiculosEmpresa || [];
+      FECHA_HOY = data.fechaHoy;
+      REGIONES_DISPONIBLES = data.regiones || [];
+      ESTADO_REGION_MAP = data.estadoRegionMap || {};
+
+      const selRegiones = document.getElementById('regionesViaje');
+      selRegiones.innerHTML = REGIONES_DISPONIBLES.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+
+      const selVehiculoEmpresa = document.getElementById('vehiculoEmpresa');
+      if (VEHICULOS_EMPRESA.length === 0) {
+        selVehiculoEmpresa.innerHTML = '<option value="">No hay vehículos configurados en "Vehiculo_empresa"</option>';
+        console.warn('El servidor no devolvió vehículos de la empresa. Verifique la hoja "Vehiculo_empresa" (ejecute diagnosticoVehiculos() desde el editor de Apps Script).');
+      } else {
+        selVehiculoEmpresa.innerHTML = '<option value="">Seleccione...</option>' +
+          VEHICULOS_EMPRESA.map(v => `<option value="${esc(v.codigo)}">${esc(v.nombre)}</option>`).join('');
+      }
+
+      const selVendedor = document.getElementById('vendedor');
+      selVendedor.innerHTML = '<option value="">Seleccione...</option>' +
+        VENDEDORES.map(v => `<option value="${esc(v.nombre)}">${esc(v.nombre)}</option>`).join('');
+
+      const selCentro = document.getElementById('centroCosto');
+      selCentro.innerHTML = (data.centrosCosto || []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
+      const selDepto = document.getElementById('departamento');
+      selDepto.innerHTML = '<option value="">Seleccione...</option>' +
+        (data.departamentos || []).map(dep => `<option value="${esc(dep)}">${esc(dep)}</option>`).join('');
+
+      document.getElementById('fechaSolicitud').value = data.fechaHoy;
+      document.getElementById('fechaSalida').min = data.fechaHoy;
+      document.getElementById('fechaLlegada').min = data.fechaHoy;
+
+      selVendedor.addEventListener('change', () => {
+        const v = VENDEDORES.find(x => x.nombre === selVendedor.value);
+        if (v && v.centroCostoPrincipal) {
+          Array.from(selCentro.options).forEach(opt => {
+            if (opt.value === v.centroCostoPrincipal) opt.selected = true;
+          });
+        }
+        onCambioFormulario();
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // ANIMACIÓN DEL ESCENARIO DE TRANSPORTE
+    // ---------------------------------------------------------------------
+    function mostrarAnimacionTransporte(valor) {
+      const stage = document.getElementById('transporte-stage');
+      const cielo = document.getElementById('stage-cielo');
+      const carretera = document.getElementById('stage-carretera');
+      const stageTaxi = document.getElementById('stage-taxi');
+      const stageRecogida = document.getElementById('stage-recogida');
+      const avion = document.getElementById('avion-icon');
+      const carro = document.getElementById('carro-icon');
+      const taxi = document.getElementById('taxi-icon');
+      const recogida = document.getElementById('recogida-icon');
+      const puertaRecogida = document.getElementById('puerta-recogida');
+      const pasajeroRecogida = document.getElementById('pasajero-recogida');
+
+      avion.classList.remove('jugar', 'volando');
+      carro.classList.remove('jugar', 'manejando');
+      taxi.classList.remove('jugar', 'esperando');
+      recogida.classList.remove('jugar', 'estacionado');
+      puertaRecogida.classList.remove('abrir', 'cerrar');
+      pasajeroRecogida.classList.remove('abordar');
+      cielo.classList.remove('activa');
+      carretera.classList.remove('activa');
+      stageTaxi.classList.remove('activa');
+      stageRecogida.classList.remove('activa');
+
+      const ESCENA_POR_TRANSPORTE = {
+        'Transporte Aéreo': 'aereo',
+        'Vehículo Propio': 'ruta',
+        'Vehículo de la Empresa': 'ruta',
+        'Transporte Privado': 'taxi',
+        'Acompañante': 'recogida'
+      };
+      const escena = ESCENA_POR_TRANSPORTE[valor];
+
+      if (!escena) {
+        stage.classList.remove('visible');
+        return;
+      }
+
+      stage.classList.add('visible');
+
+      // Con "reducir movimiento" las animaciones están desactivadas, por lo que
+      // animationend nunca se dispara: se salta directo al estado final.
+      if (escena === 'aereo') {
+        cielo.classList.add('activa');
+        if (REDUCIR_MOVIMIENTO) { avion.classList.add('volando'); return; }
+        void avion.offsetWidth;
+        avion.classList.add('jugar');
+        avion.addEventListener('animationend', function despegueListo(ev) {
+          if (ev.animationName !== 'despegueAvion') return;
+          avion.removeEventListener('animationend', despegueListo);
+          avion.classList.remove('jugar');
+          avion.classList.add('volando');
+        });
+      } else if (escena === 'ruta') {
+        carretera.classList.add('activa');
+        if (REDUCIR_MOVIMIENTO) { carro.classList.add('manejando'); return; }
+        void carro.offsetWidth;
+        carro.classList.add('jugar');
+        carro.addEventListener('animationend', function entradaLista(ev) {
+          if (ev.animationName !== 'entradaCarro') return;
+          carro.removeEventListener('animationend', entradaLista);
+          carro.classList.remove('jugar');
+          carro.classList.add('manejando');
+        });
+      } else if (escena === 'taxi') {
+        stageTaxi.classList.add('activa');
+        iniciarSecuenciaTaxi(taxi);
+      } else if (escena === 'recogida') {
+        stageRecogida.classList.add('activa');
+        iniciarSecuenciaRecogida(recogida, puertaRecogida, pasajeroRecogida);
+      }
+    }
+
+    function iniciarSecuenciaTaxi(taxi) {
+      if (REDUCIR_MOVIMIENTO) { taxi.classList.add('esperando'); return; }
+      void taxi.offsetWidth;
+      taxi.classList.add('jugar');
+      taxi.addEventListener('animationend', function llegadaLista(ev) {
+        if (ev.animationName !== 'llegadaTaxi') return;
+        taxi.removeEventListener('animationend', llegadaLista);
+        taxi.classList.remove('jugar');
+        taxi.classList.add('esperando');
+      });
+    }
+
+    // Acompañante: llega → abre puerta → sube → cierra puerta.
+    // Cada paso espera al animationend del anterior y verifica que la escena
+    // siga activa (por si el usuario cambió de transporte a mitad de secuencia).
+    function iniciarSecuenciaRecogida(auto, puerta, pasajero) {
+      if (REDUCIR_MOVIMIENTO) { auto.classList.add('estacionado'); return; }
+      void auto.offsetWidth;
+      auto.classList.add('jugar');
+      auto.addEventListener('animationend', function llegadaLista(ev) {
+        if (ev.animationName !== 'entradaCarro') return;
+        auto.removeEventListener('animationend', llegadaLista);
+        if (!auto.classList.contains('jugar')) return;
+        auto.classList.remove('jugar');
+        auto.classList.add('estacionado');
+
+        puerta.classList.add('abrir');
+        puerta.addEventListener('animationend', function puertaAbierta(ev2) {
+          if (ev2.animationName !== 'abrirPuerta') return;
+          puerta.removeEventListener('animationend', puertaAbierta);
+          if (!puerta.classList.contains('abrir')) return;
+
+          pasajero.classList.add('abordar');
+          pasajero.addEventListener('animationend', function pasajeroSubio(ev3) {
+            if (ev3.animationName !== 'abordarPasajero') return;
+            pasajero.removeEventListener('animationend', pasajeroSubio);
+            if (!pasajero.classList.contains('abordar')) return;
+            puerta.classList.remove('abrir');
+            puerta.classList.add('cerrar');
+          });
+        });
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // TRANSPORTE
+    // ---------------------------------------------------------------------
+    function seleccionarTransporte(valor) {
+      document.getElementById('btn-vehiculo').classList.toggle('active', valor === 'Vehículo Propio');
+      document.getElementById('btn-vehiculo-empresa').classList.toggle('active', valor === 'Vehículo de la Empresa');
+      document.getElementById('btn-privado').classList.toggle('active', valor === 'Transporte Privado');
+      document.getElementById('btn-aereo').classList.toggle('active', valor === 'Transporte Aéreo');
+      document.getElementById('btn-acompanante').classList.toggle('active', valor === 'Acompañante');
+      document.getElementById('form-viaticos').dataset.transporte = valor;
+
+      const requiereKm = (valor === 'Vehículo Propio' || valor === 'Vehículo de la Empresa');
+      document.getElementById('campo-km').classList.toggle('hidden', !requiereKm);
+      document.getElementById('campo-vehiculo-empresa').classList.toggle('hidden', valor !== 'Vehículo de la Empresa');
+
+      document.getElementById('campo-genero-acompanante').classList.toggle('hidden', valor !== 'Acompañante');
+      if (valor !== 'Acompañante') {
+        document.getElementById('generoAcompanante').value = '';
+      }
+
+      if (valor !== 'Vehículo de la Empresa') {
+        document.getElementById('vehiculoEmpresa').value = '';
+        document.getElementById('aviso-condicion-vehiculo').classList.add('hidden');
+        ocultarAvisoDisponibilidad();
+      }
+
+      mostrarAnimacionTransporte(valor);
+      onCambioFormulario();
+    }
+
+    function mostrarCondicionVehiculo() {
+      const codigo = document.getElementById('vehiculoEmpresa').value;
+      const aviso = document.getElementById('aviso-condicion-vehiculo');
+      const vehiculo = VEHICULOS_EMPRESA.find(v => v.codigo === codigo);
+
+      if (vehiculo) {
+        const mensaje = vehiculo.condicionEntrega ||
+          'El vehículo lo deben entregar lavado, aspirado y con el tanque full.';
+        aviso.innerHTML = '<b>Condición de entrega</b>' + esc(mensaje);
+        aviso.classList.remove('hidden');
+      } else {
+        aviso.classList.add('hidden');
+      }
+    }
+
+    function verificarDisponibilidadVehiculoUI(codigo, fechaSalida, fechaLlegada) {
+      document.getElementById('hint-verificando-disponibilidad').classList.remove('hidden');
+      clearTimeout(debounceDisponibilidad);
+      const miSeq = ++disponibilidadSeq;
+      debounceDisponibilidad = setTimeout(() => {
+        gas('verificarDisponibilidadVehiculo', codigo, fechaSalida, fechaLlegada)
+          .then(resp => { if (miSeq === disponibilidadSeq) pintarDisponibilidadVehiculo(resp); })
+          .catch(() => {
+            if (miSeq !== disponibilidadSeq) return;
+            vehiculoDisponible = true;
+            document.getElementById('hint-verificando-disponibilidad').classList.add('hidden');
+            document.getElementById('aviso-disponibilidad-vehiculo').classList.add('hidden');
+          });
+      }, 300);
+    }
+
+    function pintarDisponibilidadVehiculo(resp) {
+      document.getElementById('hint-verificando-disponibilidad').classList.add('hidden');
+      const aviso = document.getElementById('aviso-disponibilidad-vehiculo');
+
+      if (!resp || !resp.success) {
+        vehiculoDisponible = true;
+        aviso.classList.add('hidden');
+        return;
+      }
+
+      if (resp.disponible) {
+        vehiculoDisponible = true;
+        aviso.classList.add('hidden');
+      } else {
+        vehiculoDisponible = false;
+        const c = resp.conflictos[0];
+        aviso.innerHTML = '<b>⚠ Vehículo no disponible</b>' +
+          'Ya está reservado del ' + esc(c.fechaSalida) + ' al ' + esc(c.fechaLlegada) +
+          ' (Solicitud ' + esc(c.numeroSolicitud) + ', ' + esc(c.vendedor) + '). Elija otro vehículo o cambie las fechas.';
+        aviso.classList.remove('hidden');
+      }
+    }
+
+    function ocultarAvisoDisponibilidad() {
+      clearTimeout(debounceDisponibilidad);
+      disponibilidadSeq++;               // invalida cualquier verificación en curso
+      vehiculoDisponible = true;
+      document.getElementById('hint-verificando-disponibilidad').classList.add('hidden');
+      document.getElementById('aviso-disponibilidad-vehiculo').classList.add('hidden');
+    }
+
+    // ---------------------------------------------------------------------
+    // FORMULARIO / CÁLCULO
+    // ---------------------------------------------------------------------
+    function obtenerCentrosCostoSeleccionados() {
+      return Array.from(document.getElementById('centroCosto').selectedOptions).map(o => o.value);
+    }
+
+    function leerFormulario() {
+      const vendedor = document.getElementById('vendedor');
+      const v = VENDEDORES.find(x => x.nombre === vendedor.value);
+      const centrosSeleccionados = obtenerCentrosCostoSeleccionados();
+      return {
+        vendedorCodigo: v ? v.codigo : '',
+        vendedorNombre: vendedor.value,
+        departamento: document.getElementById('departamento').value,
+        centroCosto: centrosSeleccionados.join(', '),
+        motivoVisita: document.getElementById('motivoVisita').value.trim(),
+        tramos: paradasATramos(),
+        regionesViaje: regionesSeleccionadas(),
+        paradas: PARADAS.map(p => ({ value: p.value, estado: p.estado || '' })),
+        fechaSalida: document.getElementById('fechaSalida').value,
+        fechaLlegada: document.getElementById('fechaLlegada').value,
+        tipoTransporte: document.getElementById('form-viaticos').dataset.transporte || '',
+        vehiculoEmpresaCodigo: document.getElementById('vehiculoEmpresa').value,
+        generoAcompanante: document.getElementById('generoAcompanante').value,
+        enviarPorCorreo: document.getElementById('enviarCorreo').checked,
+        correoDestino: document.getElementById('correoDestino').value
+      };
+    }
+
+    function validarFechas() {
+      const salida = document.getElementById('fechaSalida').value;
+      const llegada = document.getElementById('fechaLlegada').value;
+      const errorEl = document.getElementById('error-fechas');
+      if (salida && llegada && llegada < salida) {
+        errorEl.style.display = 'block';
+        return false;
+      }
+      errorEl.style.display = 'none';
+      return true;
+    }
+
+    function onCambioFormulario() {
+      document.getElementById('fechaLlegada').min = document.getElementById('fechaSalida').value || FECHA_HOY || '';
+      if (!validarFechas()) { ocultarResumen(); return; }
+
+      const datos = leerFormulario();
+
+      if (datos.tipoTransporte === 'Vehículo de la Empresa' && datos.vehiculoEmpresaCodigo && datos.fechaSalida && datos.fechaLlegada) {
+        verificarDisponibilidadVehiculoUI(datos.vehiculoEmpresaCodigo, datos.fechaSalida, datos.fechaLlegada);
+      } else {
+        ocultarAvisoDisponibilidad();
+      }
+
+      const tramosCompletos = datos.tramos.length > 0 && datos.tramos.every(t => t.origen && t.destino) && paradasValidas();
+      const vehiculoEmpresaOk = datos.tipoTransporte !== 'Vehículo de la Empresa' || !!datos.vehiculoEmpresaCodigo;
+      const generoAcompananteOk = datos.tipoTransporte !== 'Acompañante' || !!datos.generoAcompanante;
+      const regionesOk = regionesSeleccionadas().length > 0;
+      const listo = datos.vendedorNombre && datos.departamento && datos.centroCosto && tramosCompletos &&
+                    datos.fechaSalida && datos.fechaLlegada && datos.tipoTransporte && vehiculoEmpresaOk &&
+                    generoAcompananteOk && regionesOk;
+      if (!listo) { clearTimeout(debounceTimer); calculoSeq++; ocultarResumen(); return; }
+
+      clearTimeout(debounceTimer);
+      const miSeq = ++calculoSeq;
+      debounceTimer = setTimeout(() => {
+        gas('calcularVistaPrevia', datos)
+          .then(resp => { if (miSeq === calculoSeq) pintarResumen(resp); })
+          .catch(err => { if (miSeq === calculoSeq) mostrarToast(err.message || 'Error al calcular', 'error'); });
+      }, 350);
+    }
+
+    function ocultarResumen() {
+      document.getElementById('resumen-vacio').style.display = 'block';
+      document.getElementById('resumen-contenido').style.display = 'none';
+    }
+
+    function fmtUSD(n){ return '$' + Number(n || 0).toFixed(2); }
+    function fmtBs(n){ return Number(n || 0).toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' Bs'; }
+
+    function pintarResumen(resp) {
+      if (!resp || !resp.success) { mostrarToast((resp && resp.error) || 'Error al calcular', 'error'); ocultarResumen(); return; }
+      const c = resp.calculo;
+      document.getElementById('resumen-vacio').style.display = 'none';
+      document.getElementById('resumen-contenido').style.display = 'block';
+
+      document.getElementById('r-dias').textContent = `${c.dias} día(s) / ${c.noches} noche(s)`;
+      document.getElementById('r-ruta').textContent = c.rutaTexto;
+      document.getElementById('r-alimentacion').textContent = fmtUSD(c.detalleUSD.alimentacion);
+
+      if (c.generoAcompanante) {
+        document.getElementById('r-hospedaje').textContent =
+          fmtUSD(c.detalleUSD.hospedaje) + ' (' + c.generoAcompanante + ': ' +
+          c.noches + ' noche/s × ' + fmtUSD(c.detalleUSD.hospedajeTarifaNoche) + '/noche)';
+      } else {
+        document.getElementById('r-hospedaje').textContent = fmtUSD(c.detalleUSD.hospedaje);
+      }
+
+      document.getElementById('r-transporte').textContent = fmtUSD(c.detalleUSD.transporte);
+
+      const filaTraslado = document.getElementById('fila-traslado-interno');
+      if (c.detalleUSD.trasladoInterno) {
+        filaTraslado.style.display = 'flex';
+        const partes = [];
+        if (c.detalleUSD.trasladoInternoAeropuerto) {
+          partes.push('aeropuerto ' + fmtUSD(c.detalleUSD.trasladoInternoAeropuerto));
+        }
+        partes.push(c.dias + ' día/s × ' + fmtUSD(c.detalleUSD.trasladoInternoTarifaDia) + '/día');
+        document.getElementById('r-traslado-interno').textContent =
+          fmtUSD(c.detalleUSD.trasladoInterno) + ' (' + c.detalleUSD.trasladoInternoEstado + ': ' + partes.join(' + ') + ')';
+      } else {
+        filaTraslado.style.display = 'none';
+      }
+
+      document.getElementById('r-total-usd').textContent = fmtUSD(c.detalleUSD.total);
+      document.getElementById('r-total-bs').textContent = fmtBs(c.totalBs);
+      document.getElementById('r-tasa-badge').textContent = `Tasa ${c.tasaBCV.tasa} (${c.tasaBCV.fuente})`;
+
+      const tipoTransporte = document.getElementById('form-viaticos').dataset.transporte || '';
+      const kmInput = document.getElementById('km');
+
+      if (tipoTransporte === 'Vehículo Propio' && c.detalleUSD.km) {
+        kmInput.value =
+          c.detalleUSD.km.toFixed(1) + ' km recorridos × ' + fmtUSD(c.detalleUSD.tarifaKmAbonado) +
+          '/km = ' + fmtUSD(c.detalleUSD.montoKmAbonado) + ' a abonar (no incluye gasolina)';
+      } else if (tipoTransporte === 'Vehículo de la Empresa' && c.detalleUSD.km) {
+        kmInput.value =
+          c.detalleUSD.km.toFixed(1) + ' km total → ' + c.detalleUSD.litrosCalculados.toFixed(2) + ' L calculados + ' +
+          c.detalleUSD.litrosAdicionalesRetorno.toFixed(2) + ' L colchón (entregar con tanque lleno) = ' +
+          c.detalleUSD.litros.toFixed(2) + ' L a reembolsar';
+      } else {
+        kmInput.value = '';
+      }
+
+      document.getElementById('r-base').textContent = fmtBs(c.facturacion.baseImponible);
+      document.getElementById('r-iva').textContent = fmtBs(c.facturacion.iva);
+
+      const filaRetIva = document.getElementById('fila-ret-iva');
+      if (c.facturacion.retencionIVA) {
+        filaRetIva.style.display = 'flex';
+        document.getElementById('r-ret-iva-label').innerHTML =
+          '&minus; Retención IVA (' + Math.round(c.facturacion.porcentajeRetencionIVA * 100) + '% del IVA)';
+        document.getElementById('r-ret-iva').textContent = fmtBs(c.facturacion.retencionIVA);
+      } else {
+        filaRetIva.style.display = 'none';
+      }
+
+      document.getElementById('r-islr').textContent = fmtBs(c.facturacion.retencionISLR);
+      document.getElementById('r-neto').textContent = fmtBs(c.facturacion.netoAPagar);
+    }
+
+    function onSubmit(e) {
+      e.preventDefault();
+      if (!validarFechas()) return;
+
+      const datos = leerFormulario();
+      if (!datos.departamento) { mostrarToast('Seleccione un Departamento', 'error'); return; }
+      if (!datos.centroCosto) { mostrarToast('Seleccione al menos un Centro de Costo', 'error'); return; }
+      if (!datos.motivoVisita || datos.motivoVisita.length < 5) { mostrarToast('Describa el motivo de la visita', 'error'); return; }
+      if (!datos.tipoTransporte) { mostrarToast('Seleccione un tipo de transporte', 'error'); return; }
+      if (datos.tipoTransporte === 'Vehículo de la Empresa' && !datos.vehiculoEmpresaCodigo) {
+        mostrarToast('Seleccione cuál vehículo de la empresa utilizará', 'error');
+        return;
+      }
+      if (datos.tipoTransporte === 'Vehículo de la Empresa' && !vehiculoDisponible) {
+        mostrarToast('El vehículo seleccionado no está disponible en esas fechas. Elija otro vehículo o cambie las fechas.', 'error');
+        return;
+      }
+      if (datos.tipoTransporte === 'Acompañante' && !datos.generoAcompanante) {
+        mostrarToast('Indique si el acompañante es Hombre o Mujer', 'error');
+        return;
+      }
+      if (!regionesSeleccionadas().length) { mostrarToast('Seleccione al menos una región del viaje', 'error'); return; }
+      const tramosOk = datos.tramos.length > 0 && datos.tramos.every(t => t.origen && t.destino);
+      if (!tramosOk) { mostrarToast('Complete todas las paradas de la ruta (origen y destino)', 'error'); return; }
+      if (!paradasValidas()) { mostrarToast('Seleccione cada dirección de la lista de sugerencias de Google', 'error'); return; }
+      if (datos.enviarPorCorreo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.correoDestino)) {
+        mostrarToast('Ingrese un correo de destino válido', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-enviar');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Generando...';
+
+      gas('enviarSolicitud', datos)
+        .then(resp => {
+          btn.disabled = false;
+          btn.textContent = 'Generar Solicitud';
+          if (!resp || !resp.success) { mostrarToast((resp && resp.error) || 'Error al generar la solicitud', 'error'); return; }
+          mostrarModalExito(resp);
+          resetFormulario();
+        })
+        .catch(err => {
+          btn.disabled = false;
+          btn.textContent = 'Generar Solicitud';
+          mostrarToast(err.message || 'Error al generar la solicitud', 'error');
+        });
+    }
+
+    function mostrarModalExito(resp) {
+      const checkEl = document.getElementById('modal-check');
+      const enlace = document.getElementById('btn-descargar-pdf');
+
+      if (resp.estado === 'Pendiente') {
+        document.getElementById('modal-titulo').textContent = 'Solicitud ' + resp.numeroSolicitud + ' — Pendiente';
+        document.getElementById('modal-texto').textContent = resp.mensaje ||
+          'Su solicitud fue registrada y enviada al gerente para aprobación rápida.';
+        checkEl.textContent = '⏳';
+        checkEl.classList.add('pendiente');
+        enlace.style.display = 'none';
+      } else {
+        document.getElementById('modal-titulo').textContent = 'Solicitud ' + resp.numeroSolicitud + ' — Aprobada';
+        document.getElementById('modal-texto').textContent = resp.correoEnviado
+          ? 'Solicitud auto-aprobada y PDF enviado por correo.'
+          : 'Solicitud auto-aprobada correctamente. Descargue su PDF.';
+        checkEl.textContent = '✓';
+        checkEl.classList.remove('pendiente');
+        if (resp.pdfBase64) {
+          enlace.style.display = 'inline-block';
+          enlace.href = 'data:application/pdf;base64,' + resp.pdfBase64;
+          enlace.download = resp.pdfNombre || ('Solicitud_' + resp.numeroSolicitud + '.pdf');
+        } else {
+          enlace.style.display = 'none';
+        }
+      }
+
+      document.getElementById('modal-overlay').style.display = 'flex';
+    }
+
+    function resetFormulario() {
+      document.getElementById('form-viaticos').reset();
+
+      PARADAS = [{ value: '', lat: null, lng: null, estado: '' }, { value: '', lat: null, lng: null, estado: '' }];
+      renderParadas();
+      Array.from(document.getElementById('regionesViaje').options).forEach(o => { o.selected = false; });
+      limpiarMarcadoresRuta();
+      if (directionsRenderer) directionsRenderer.set('directions', null);
+      if (mapaRuta) { mapaRuta.setCenter({ lat: 10.4806, lng: -66.9036 }); mapaRuta.setZoom(6); }
+
+      document.getElementById('vendedor').value = '';
+      document.getElementById('departamento').value = '';
+      Array.from(document.getElementById('centroCosto').options).forEach(o => { o.selected = false; });
+      document.getElementById('motivoVisita').value = '';
+      document.getElementById('fechaSolicitud').value = FECHA_HOY;
+      document.getElementById('fechaSalida').value = '';
+      document.getElementById('fechaSalida').min = FECHA_HOY;
+      document.getElementById('fechaLlegada').value = '';
+      document.getElementById('fechaLlegada').min = FECHA_HOY;
+      document.getElementById('error-fechas').style.display = 'none';
+
+      document.getElementById('form-viaticos').dataset.transporte = '';
+      ['btn-vehiculo', 'btn-vehiculo-empresa', 'btn-privado', 'btn-aereo', 'btn-acompanante']
+        .forEach(id => document.getElementById(id).classList.remove('active'));
+      document.getElementById('campo-vehiculo-empresa').classList.add('hidden');
+      document.getElementById('campo-km').classList.add('hidden');
+      document.getElementById('campo-genero-acompanante').classList.add('hidden');
+      document.getElementById('generoAcompanante').value = '';
+      document.getElementById('vehiculoEmpresa').value = '';
+      document.getElementById('aviso-condicion-vehiculo').classList.add('hidden');
+      document.getElementById('km').value = '';
+      ocultarAvisoDisponibilidad();
+      mostrarAnimacionTransporte('');
+
+      document.getElementById('enviarCorreo').checked = false;
+      document.getElementById('campo-correo').classList.add('hidden');
+      document.getElementById('correoDestino').value = '';
+
+      clearTimeout(debounceTimer);
+      calculoSeq++;
+      ocultarResumen();
+
+      const btn = document.getElementById('btn-enviar');
+      btn.disabled = false;
+      btn.textContent = 'Generar Solicitud';
+    }
+
+    function mostrarToast(msg, tipo) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + (tipo || '');
+      t.style.display = 'block';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+  </script>
+
+  <!--
+    Google Maps JavaScript API (librería "places"): autocompletado de direcciones
+    y mapa en vivo de la ruta. La API key llega desde Vercel (variable de entorno
+    MAPS_BROWSER_KEY) a través de /api/config, así no queda escrita en el código.
+  -->
+  <script>
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(cfg => {
+        if (!cfg.mapsApiKey) {
+          console.warn('Falta la variable MAPS_BROWSER_KEY en Vercel: el mapa y el autocompletado no se cargarán.');
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(cfg.mapsApiKey) +
+                '&libraries=places&language=es&region=VE&callback=initGoogleMaps';
+        s.async = true;
+        document.head.appendChild(s);
+      })
+      .catch(err => console.warn('No se pudo cargar la configuración de Maps:', err));
+  </script>
+</body>
+</html>
